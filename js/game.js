@@ -9,9 +9,40 @@ class GameObject extends createjs.Container {
 		}
 	}
 }
-class Hero extends GameObject {
+class MoveableGameObject extends GameObject {
+	constructor(graphic) {
+		super(graphic);
+		
+		this.isOnGround = false;
+
+		this.velocity = {
+			x:0,
+			y:0
+		};
+		this.on("tick",this.tick);
+	}
+	tick() {
+		this.x+= this.velocity.x;
+		this.y+= this.velocity.y;
+	}
+}
+class Hero extends MoveableGameObject {
 	constructor() {
 		super(new lib.HeroGraphic());
+	}
+	run() {
+		if(!this.isOnGround) {
+			this.velocity.x = 2;
+			this.graphic.gotoAndPlay("run");
+			this.isOnGround = true;
+		}
+	}
+	jump() {
+		if(this.isOnGround) {
+			this.velocity.y = -13;
+			this.graphic.gotoAndPlay("jump");
+			this.isOnGround = false;
+		}
 	}
 }
 class Platform extends GameObject {
@@ -23,31 +54,84 @@ class World extends createjs.Container {
 	constructor() {
 		super();
 
+		this.on("tick",this.tick);
 		// store platforms 
 		this.platforms = [];
 		this.generatePlatforms();
 		this.addHero();
+		this.hero.run();
+	}
+	tick() {
+		this.applyGravity();
+		// Follow the Hero
+		this.x-= this.hero.velocity.x;
 	}
 	addHero() {
 		var hero = new Hero();
 		hero.x = 100;
-		hero.y = 80;
+		hero.y = 100;
 		this.addChild(hero);
+		this.hero = hero;
 	}
 	generatePlatforms(){
 		var platform = new Platform();
 		platform.x = 100;
-		platform.y = 100;
+		platform.y = 200;
 		this.platforms.push(platform);
 		this.addChild(platform);
 
 		// 2nd platform 
 		platform = new Platform();
 		platform.x = 200;
-		platform.y = 200;
+		platform.y = 300;
 		this.platforms.push(platform);
 		this.addChild(platform);
 	}
+	applyGravity() {
+		var gravity = 1;
+		var terminalVelocity = 5;
+		var object = this.hero;
+		object.velocity.y+= gravity;
+		object.velocity.y = Math.min(object.velocity.y,terminalVelocity);
+		if(this.willObjectOnGround(object)) {
+			object.velocity.y = 1;
+		}
+		if(this.isObjectOnGround(object) && object.velocity.y > 0) {
+			object.velocity.y = 0;
+			object.run();
+		}
+	}
+	isObjectOnGround(object){
+		var objectWidth = object.getBounds().width;
+		var objectHeight = object.getBounds().height;
+		for(var platform of this.platforms) {
+			var platformWidth = platform.getBounds().width;
+			var platformHeight = platform.getBounds().height;
+			
+			if(object.x >= platform.x && object.x < platform.x + platformWidth 
+				&& object.y + objectHeight >= platform.y  && object.y + objectHeight <= platform.y + platformHeight) {
+				return true;
+			}
+		}
+		return false;
+	}
+	willObjectOnGround(object){
+		var objectWidth = object.getBounds().width;
+		var objectHeight = object.getBounds().height;
+		var objectNextY = object.y + objectHeight + object.velocity.y;
+
+		for(var platform of this.platforms) {
+			var platformWidth = platform.getBounds().width;
+			var platformHeight = platform.getBounds().height;
+			
+			if(object.x >= platform.x && object.x < platform.x + platformWidth 
+				&& objectNextY >= platform.y  && objectNextY <= platform.y + platformHeight) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 }
 class Game {
 	constructor() {
@@ -66,7 +150,7 @@ class Game {
 		// enable retina screen 
 		this.retinalize();
 
-		createjs.Ticker.setFPS(60);
+		createjs.Ticker.setFPS(30);
 		
 		// keep re-drawing 
 		createjs.Ticker.on("tick",this.stage); 
@@ -100,8 +184,12 @@ class Game {
 		}
 	}
 	restartGame() {
-		var world = new World();
-		this.stage.addChild(world);
+		this.world = new World();
+		this.stage.addChild(this.world);
+		var hero = this.world.hero;
+		this.stage.on("stagemousedown", function(){
+			hero.jump();
+		});
 	}
 	
 	retinalize() {
