@@ -1,3 +1,23 @@
+class LevelData {
+	constructor() {
+		this.levels = [
+			{gapX:0,gapY:30,widthDiff:0,total:5,coinChance:0.4,enemyChance:0.2},
+			{gapX:10,gapY:30,widthDiff:30,total:10,coinChance:0.6,enemyChance:0.3},
+			{gapX:20,gapY:30,widthDiff:30,total:10,coinChance:0.6,enemyChance:0.2},
+			{gapX:40,gapY:40,widthDiff:100,total:50,coinChance:0.8,enemyChance:0},
+			{gapX:20,gapY:30,widthDiff:30,total:100,coinChance:0.6,enemyChance:0.4}
+		];
+	}
+}
+class ScoreCalculator {
+	constructor() {
+		this.score = 0;
+	}
+	increaseScore(level) {
+		//exponential incremental 
+		this.score+= (level+1)*(level+1);
+	}
+}
 class GameObject extends createjs.Container {
 	constructor(graphic){
 		super();
@@ -72,10 +92,19 @@ class Platform extends GameObject {
 	constructor() {
 		super(new lib.PlatformGraphic());
 	}
+	setClippingWidth(width) {
+		this.graphic.instance.mask = new createjs.Shape(new createjs.Graphics().beginFill("#000")
+			.drawRect(0,0,width,this.getBounds().height));
+		this.setBounds(this.x, this.y, width, this.getBounds().height);
+	}
 }
 class World extends createjs.Container {
 	constructor() {
 		super();
+
+		this.LevelData = new LevelData();
+		this.ScoreCalculator = new ScoreCalculator();
+		this.currentLevel = 0;
 
 		this.on("tick",this.tick);
 		// store platforms 
@@ -84,22 +113,11 @@ class World extends createjs.Container {
 		this.coins = [];
 
 		this.generatePlatforms();
+		this.generateEnemies();
+		this.generateCoins();
 		this.addHero();
 		this.hero.run();
 
-		var enemy = new Enemy();
-		enemy.x = 300;
-		enemy.y = 190;
-		this.addChild(enemy);
-		//this.enemy = enemy;
-		this.enemies.push(enemy);
-
-		var coin = new Coin();
-		coin.x = 360;
-		coin.y = 190;
-		this.addChild(coin);
-		//this.coin = coin;
-		this.coins.push(coin);
 	}
 	tick() {
 		this.applyGravity();
@@ -112,6 +130,8 @@ class World extends createjs.Container {
 		if(hitCoin!==false){
 			console.log("hit " + hitCoin);
 			this.eatCoin(hitCoin);
+			this.ScoreCalculator.increaseScore(this.currentLevel);
+			console.log(this.ScoreCalculator.score);
 		}
 		// Follow the Hero
 		this.x-= this.hero.velocity.x;
@@ -124,18 +144,56 @@ class World extends createjs.Container {
 		this.hero = hero;
 	}
 	generatePlatforms(){
-		var platform = new Platform();
-		platform.x = 100;
-		platform.y = 200;
-		this.platforms.push(platform);
-		this.addChild(platform);
+		var nextX = 100;
+		var nextY = 200;
+		
+		var levelNumber = 0;
+		for(var level of this.LevelData.levels) {
+			for(var i=0;i<level.total;i++) {
+				var platform = new Platform();
+				platform.x = nextX;
+				platform.y = nextY;
+				var width = platform.getBounds().width;
+				platform.setClippingWidth(width-Math.random()*level.widthDiff);
+				platform.levelNumber = levelNumber;
 
-		// 2nd platform 
-		platform = new Platform();
-		platform.x = 230;
-		platform.y = 200;
-		this.platforms.push(platform);
-		this.addChild(platform);
+				this.platforms.push(platform);
+				nextX = platform.x + platform.getBounds().width + Math.random()*level.gapX;
+				nextY = platform.y + (Math.random() - 0.5)*level.gapY;
+				this.addChild(platform);
+			}
+			levelNumber+=1;
+		}
+	}
+	generateEnemies() {
+		// skip first 2 platforms 
+		for(var i=2;i<this.platforms.length;i++) {
+			var platform = this.platforms[i];
+			var levelNumber = platform.levelNumber;
+			var chance = this.LevelData.levels[levelNumber].enemyChance;
+			// not every platform has enemy 
+			if(Math.random() < chance) {
+				var enemy = new Enemy();
+				enemy.x = platform.x + platform.getBounds().width/2;
+				enemy.y = platform.y - enemy.getBounds().height/2;
+				this.addChild(enemy);
+				this.enemies.push(enemy);
+			}
+		}
+	}
+	generateCoins() {
+		for(var platform of this.platforms) {
+			var levelNumber = platform.levelNumber;
+			var chance = this.LevelData.levels[levelNumber].coinChance;
+
+			if(Math.random() <  chance) {
+				var coin = new Coin();
+				coin.x = platform.x + Math.random()*platform.getBounds().width;
+				coin.y = platform.y - coin.getBounds().height;
+				this.addChild(coin);
+				this.coins.push(coin);
+			}
+		}
 	}
 	eatCoin(coin) {
 		for(var i=0;i<this.coins.length;i++) {
@@ -154,7 +212,9 @@ class World extends createjs.Container {
 		if(this.willObjectOnGround(object)) {
 			object.velocity.y = 1;
 		}
-		if(this.isObjectOnGround(object) && object.velocity.y > 0) {
+		var platform = this.isObjectOnGround(object);
+		if(platform!==false &&  object.velocity.y > 0) {
+			this.currentLevel = platform.levelNumber;
 			object.velocity.y = 0;
 			object.run();
 		}
@@ -190,7 +250,7 @@ class World extends createjs.Container {
 			
 			if(object.x >= platform.x && object.x < platform.x + platformWidth 
 				&& object.y + objectHeight >= platform.y  && object.y + objectHeight <= platform.y + platformHeight) {
-				return true;
+				return platform;
 			}
 		}
 		return false;
