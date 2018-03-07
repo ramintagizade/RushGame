@@ -26,6 +26,29 @@ class MoveableGameObject extends GameObject {
 		this.y+= this.velocity.y;
 	}
 }
+class Coin extends GameObject {
+	constructor(){
+		super(new lib.CoinGraphic());
+	}
+}
+class Enemy extends MoveableGameObject {
+	constructor(){
+		super(new lib.ObstacleGraphic());
+		this.directionX = -1;
+		this.speed = 0.5;
+		this.offsetX = 0;
+		this.maxOffset = 10;
+
+		this.on("tick",this.move);
+	}
+	move() {
+		this.velocity.x = this.speed*this.directionX;
+		this.offsetX+= this.velocity.x;
+		if(Math.abs(this.offsetX) > this.maxOffset){
+			this.directionX*=-1;
+		}
+	}
+}
 class Hero extends MoveableGameObject {
 	constructor() {
 		super(new lib.HeroGraphic());
@@ -57,12 +80,39 @@ class World extends createjs.Container {
 		this.on("tick",this.tick);
 		// store platforms 
 		this.platforms = [];
+		this.enemies = [];
+		this.coins = [];
+
 		this.generatePlatforms();
 		this.addHero();
 		this.hero.run();
+
+		var enemy = new Enemy();
+		enemy.x = 300;
+		enemy.y = 190;
+		this.addChild(enemy);
+		//this.enemy = enemy;
+		this.enemies.push(enemy);
+
+		var coin = new Coin();
+		coin.x = 360;
+		coin.y = 190;
+		this.addChild(coin);
+		//this.coin = coin;
+		this.coins.push(coin);
 	}
 	tick() {
 		this.applyGravity();
+
+		var hitEnemy = this.targetHitTestObjects(this.hero,this.enemies);
+		if(hitEnemy!==false){
+			console.log("hit " + hitEnemy);
+		}
+		var hitCoin = this.targetHitTestObjects(this.hero,this.coins);
+		if(hitCoin!==false){
+			console.log("hit " + hitCoin);
+			this.eatCoin(hitCoin);
+		}
 		// Follow the Hero
 		this.x-= this.hero.velocity.x;
 	}
@@ -82,10 +132,18 @@ class World extends createjs.Container {
 
 		// 2nd platform 
 		platform = new Platform();
-		platform.x = 200;
-		platform.y = 300;
+		platform.x = 230;
+		platform.y = 200;
 		this.platforms.push(platform);
 		this.addChild(platform);
+	}
+	eatCoin(coin) {
+		for(var i=0;i<this.coins.length;i++) {
+			if(coin == this.coins[i]) {
+				this.coins.splice(i,1);
+			}
+		}
+		coin.parent.removeChild(coin);
 	}
 	applyGravity() {
 		var gravity = 1;
@@ -100,6 +158,28 @@ class World extends createjs.Container {
 			object.velocity.y = 0;
 			object.run();
 		}
+	}
+	targetHitTestObjects(target,objects) {
+		for( var object of objects) {
+			if(this.objectsHitTest(target,object)){
+				return object;
+			}
+		}
+		return false;
+	}
+	objectsHitTest(object1, object2) {
+		var x1 = object1.x;
+		var y1 = object1.y;
+		var w1 = object1.getBounds().width;
+		var h1 = object1.getBounds().height;
+
+		var x2 = object2.x;
+		var y2 = object2.y;
+		var w2 = object2.getBounds().width;
+		var h2 = object2.getBounds().height;
+
+		return (Math.abs(x1-x2) * 2 < (w1+w2)) && 
+		(Math.abs(y1-y2) * 2 < (h1+h2));
 	}
 	isObjectOnGround(object){
 		var objectWidth = object.getBounds().width;
@@ -184,6 +264,9 @@ class Game {
 		}
 	}
 	restartGame() {
+		// background 
+		this.stage.addChild(new lib.BackgroundGraphic());
+		
 		this.world = new World();
 		this.stage.addChild(this.world);
 		var hero = this.world.hero;
