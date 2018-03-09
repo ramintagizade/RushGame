@@ -8,9 +8,18 @@
 </head>
 <body>
 	<div id="game">
-		<canvas id="game-canvas" width="480" height="320">
+		<canvas id="game-canvas" width="480" height="320" class="active scene">
 			This is an interactive game .	
 		</canvas>
+		<div id="menu" class="active scene">
+			<a href="#game-canvas" id="start-game-button">
+				Start Game
+			</a>
+		</div>
+		<div id="gameover" class="scene">
+			<a href="#game-canvas" id="restart-game-button">Restart Game</a>
+			<a href="#menu" id="exit-button">Exit to Menu</a>
+		</div>
 	</div>
 	<script src="https://code.createjs.com/createjs-2015.11.26.min.js"></script>
 	<script src="js/rush-game-graphics.js"></script>

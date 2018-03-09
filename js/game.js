@@ -1,3 +1,49 @@
+class SceneManager {
+	constructor() {
+		this.menuScene = document.getElementById("menu");
+		this.gameScene = document.getElementById("game-canvas");
+		this.gameOverScene = document.getElementById("gameover");
+		
+		this.startButton = document.getElementById("start-game-button");
+		this.restartButton = document.getElementById("restart-game-button");
+		this.exitButton = document.getElementById("exit-button");
+
+		this.handlePlayerClick();
+	}
+	startGame() {
+		this.menuScene.classList.remove("active");
+		this.gameOverScene.classList.remove("active");
+	}
+	showMenu() {
+		this.gameOverScene.classList.remove("active");
+		this.menuScene.classList.add("active");
+	}
+	gameOver() {
+		this.gameOverScene.classList.add("active");
+	}
+	handlePlayerClick() {
+		var manager = this;
+		this.startButton.onclick = function(e) {
+			manager.startGame();
+			game.restartGame();
+			e.preventDefault();
+			return false;
+		}
+
+		this.exitButton.onclick = function(e) {
+			manager.showMenu();
+			e.preventDefault();
+			return false;
+		}
+
+		this.restartButton.onclick = function(e) {
+			manager.startGame();
+			game.restartGame();
+			e.preventDefault();
+			return false;
+		}
+	}
+}
 class LevelData {
 	constructor() {
 		this.levels = [
@@ -125,6 +171,7 @@ class World extends createjs.Container {
 		var hitEnemy = this.targetHitTestObjects(this.hero,this.enemies);
 		if(hitEnemy!==false){
 			console.log("hit " + hitEnemy);
+			game.gameOver();
 		}
 		var hitCoin = this.targetHitTestObjects(this.hero,this.coins);
 		if(hitCoin!==false){
@@ -132,6 +179,9 @@ class World extends createjs.Container {
 			this.eatCoin(hitCoin);
 			this.ScoreCalculator.increaseScore(this.currentLevel);
 			console.log(this.ScoreCalculator.score);
+		}
+		if(this.hero.y > game.stage.height) {
+			game.gameOver();
 		}
 		// Follow the Hero
 		this.x-= this.hero.velocity.x;
@@ -295,6 +345,7 @@ class Game {
 		// keep re-drawing 
 		createjs.Ticker.on("tick",this.stage); 
 		
+		this.gameLoaded = false;
 		this.loadGraphics();
 		
 	}
@@ -320,10 +371,12 @@ class Game {
 		function handleComplete(evt) {
 			var queue = evt.target;
 			ss["rush_game_graphics_atlas_"] = queue.getResult("rush_game_graphics_atlas_");
-			this.restartGame();
+			//this.restartGame();
+			this.gameLoaded = true;
 		}
 	}
 	restartGame() {
+		this.stage.removeAllChildren();
 		// background 
 		this.stage.addChild(new lib.BackgroundGraphic());
 		
@@ -334,7 +387,9 @@ class Game {
 			hero.jump();
 		});
 	}
-	
+	gameOver() {
+		sceneManager.gameOver();
+	}
 	retinalize() {
 		this.stage.width = this.canvas.width;
 		this.stage.height = this.canvas.height;
@@ -349,3 +404,4 @@ class Game {
 	}
 }
 var game = new Game();
+var sceneManager = new SceneManager();
