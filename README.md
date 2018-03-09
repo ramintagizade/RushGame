@@ -2,8 +2,8 @@
 
 ### To run 
 
-<pre><code>python -m SimpleHTTPServer 8001</code></pre>
+<pre><code>npm start</code></pre>
 
 ### Open browser 
 
-<pre><code>http://localhost:8001</code></pre>
+<pre><code>http://localhost:3000</code> | <code>https://warm-forest-69202.herokuapp.com</code></pre>
