@@ -3,7 +3,9 @@ class SceneManager {
 		this.menuScene = document.getElementById("menu");
 		this.gameScene = document.getElementById("game-canvas");
 		this.gameOverScene = document.getElementById("gameover");
-		
+		this.hud = document.getElementById("hud");
+
+		this.scoreText = document.getElementById("score-text");
 		this.startButton = document.getElementById("start-game-button");
 		this.restartButton = document.getElementById("restart-game-button");
 		this.exitButton = document.getElementById("exit-button");
@@ -13,13 +15,25 @@ class SceneManager {
 	startGame() {
 		this.menuScene.classList.remove("active");
 		this.gameOverScene.classList.remove("active");
+		this.showHud();
+		this.setGameScore(0);
 	}
 	showMenu() {
 		this.gameOverScene.classList.remove("active");
 		this.menuScene.classList.add("active");
 	}
+	showHud() {
+		this.hud.classList.add("active");
+	}
+	hideHud() {
+		this.hud.classList.remove("active");
+	}
+	setGameScore(score) {
+		this.scoreText.textContent = score;
+	}
 	gameOver() {
 		this.gameOverScene.classList.add("active");
+		this.hideHud();
 	}
 	handlePlayerClick() {
 		var manager = this;
@@ -179,6 +193,7 @@ class World extends createjs.Container {
 			this.eatCoin(hitCoin);
 			this.ScoreCalculator.increaseScore(this.currentLevel);
 			console.log(this.ScoreCalculator.score);
+			sceneManager.setGameScore(this.ScoreCalculator.score);
 		}
 		if(this.hero.y > game.stage.height) {
 			game.gameOver();

@@ -7,6 +7,7 @@
 	<link rel="stylesheet" type="text/css" href="styles/game.css">
 </head>
 <body>
+	<header>Rush</header>
 	<div id="game">
 		<canvas id="game-canvas" width="480" height="320" class="active scene">
 			This is an interactive game .	
@@ -20,7 +21,24 @@
 			<a href="#game-canvas" id="restart-game-button">Restart Game</a>
 			<a href="#menu" id="exit-button">Exit to Menu</a>
 		</div>
+		<div id="hud" class="scene">
+			<p>Score: <span id="score-text">0</span></p>
+		</div>
 	</div>
+	<div class="hr">
+		<hr>
+	</div>
+	<section>
+		<h2>How to Play?</h2>
+		<ul class="how-to-play">
+			<li>Press the screen to jump</li>
+			<li>Avoid the obstacles</li>
+			<li>Collect the game coins</li>
+		</ul>
+	</section>
+	<footer>
+		<p>Written by ©Ramin</p>
+	</footer>
 	<script src="https://code.createjs.com/createjs-2015.11.26.min.js"></script>
 	<script src="js/rush-game-graphics.js"></script>
 	<script src="js/game.js"></script>
